@@ -4,29 +4,40 @@ async function feed(parent, args, context) {
       where: {
         OR: [
           { description_contains: args.filter },
-          { url_contains: args.filter },
-        ],
-      },
+          { url_contains: args.filter }
+        ]
+      }
     })
     .aggregate()
-    .count()
+    .count();
   const links = await context.prisma.links({
     where: {
-      OR: [
-        { description_contains: args.filter },
-        { url_contains: args.filter },
-      ],
+      OR: [{ description_contains: args.filter }, { url_contains: args.filter }]
     },
     skip: args.skip,
     first: args.first,
-    orderBy: args.orderBy,
-  })
+    orderBy: args.orderBy
+  });
   return {
     count,
-    links,
-  }
+    links
+  };
 }
 
+// async function feed(parent, args, ctx, info) {
+//   const { filter, first, skip } = args; // destructure input arguments
+//   const where = filter
+//     ? { OR: [{ url_contains: filter }, { description_contains: filter }] }
+//     : {};
+
+//   const queriedLinks = await ctx.db.query.links({ first, skip, where });
+
+//   return {
+//     linkIds: queriedLinks.map(link => link.id),
+//     count
+//   };
+// }
+
 module.exports = {
-  feed,
-}
+  feed
+};

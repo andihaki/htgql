@@ -11,12 +11,52 @@ import { InMemoryCache } from "apollo-cache-inmemory";
 
 import { BrowserRouter } from "react-router-dom";
 
+import { AUTH_TOKEN } from "./constants";
+import { setContext } from "apollo-link-context";
+
+import { split } from "apollo-link";
+import { WebSocketLink } from "apollo-link-ws";
+import { getMainDefinition } from "apollo-utilities";
+
 const httpLink = createHttpLink({
   uri: "http://localhost:4000"
 });
 
+const authLink = setContext((_, { headers }) => {
+  const token = localStorage.getItem(AUTH_TOKEN);
+  // console.log(token);
+  return {
+    headers: {
+      ...headers,
+      authorization: token ? `Bearer ${token}` : ""
+    }
+  };
+});
+
+const wsLink = new WebSocketLink({
+  uri: `ws://localhost:4000`,
+  options: {
+    reconnect: true,
+    connectionParams: {
+      authToken: localStorage.getItem(AUTH_TOKEN)
+    }
+  }
+});
+
+// split mengembalikan 3 value
+// pertama: true / false
+// jika true, lari ke param kedua, jika false ke param ketiga
+const link = split(
+  ({ query }) => {
+    const { kind, operation } = getMainDefinition(query);
+    return kind === "OperationDefinition" && operation === "subscription";
+  },
+  wsLink,
+  authLink.concat(httpLink)
+);
+
 const client = new ApolloClient({
-  link: httpLink,
+  link,
   cache: new InMemoryCache()
 });
 
